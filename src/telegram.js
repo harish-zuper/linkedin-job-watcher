@@ -57,10 +57,22 @@ async function sendOne(token, chatId, text) {
 
 async function sendTelegram(jobs, token, chatId) {
   if (!jobs || jobs.length === 0) return;
+  // chatId may be a comma-separated list of recipients (you + friends).
+  const recipients = String(chatId)
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
   const messages = chunkMessages(jobs);
-  for (const msg of messages) {
-    await sendOne(token, chatId, msg);
-    await new Promise((r) => setTimeout(r, 400)); // gentle pacing
+  for (const rid of recipients) {
+    for (const msg of messages) {
+      try {
+        await sendOne(token, rid, msg);
+      } catch (e) {
+        // One bad recipient (e.g. hasn't messaged the bot yet) shouldn't block others.
+        console.warn(`[telegram] failed to send to ${rid}: ${e.message}`);
+      }
+      await new Promise((r) => setTimeout(r, 400)); // gentle pacing
+    }
   }
 }
 
