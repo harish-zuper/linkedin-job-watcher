@@ -1,0 +1,49 @@
+name: LinkedIn Job Watcher
+
+on:
+  schedule:
+    # Every hour, on the hour (UTC). GitHub may delay scheduled runs under load.
+    - cron: "0 * * * *"
+  workflow_dispatch: {} # allows manual "Run workflow" button / `gh workflow run`
+
+# Allow the job to commit the updated seen-jobs state back to the repo.
+permissions:
+  contents: write
+
+# Never run two instances at once (avoids state-commit races).
+concurrency:
+  group: job-watcher
+  cancel-in-progress: false
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run watcher
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node src/run.js
+
+      - name: Commit updated state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen-jobs.json
+          if git diff --staged --quiet; then
+            echo "No state change to commit."
+          else
+            git commit -m "chore: update seen jobs [skip ci]"
+            git push
+          fi

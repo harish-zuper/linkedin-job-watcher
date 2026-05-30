@@ -1,0 +1,16 @@
+{
+  "name": "linkedin-job-watcher",
+  "version": "1.0.0",
+  "description": "Hourly LinkedIn job watcher that pushes new postings to Telegram (runs free on GitHub Actions)",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/run.js",
+    "dryrun": "node test-local.js"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  }
+}
